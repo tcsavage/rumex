@@ -4,16 +4,20 @@ module Tokens (tokenize, Token(..)) where
 
 %wrapper "basic"
 
-$digit = 0-9        -- digits
-$alpha = [a-zA-Z]   -- alphabetic characters
+$digit = 0-9                 -- digits
+$alpha = [a-zA-Z]            -- alphabetic characters
+$ops = [\<\>\+\-\.\#\,\:]    -- operations
+$delims = [\'\(\)\[\]]       -- delimiters
+$notcode = [^$ops $delims]   -- everything that isn't code
 
 tokens :-
 
-  $white+               ;
-  $digit+               { \s -> TInt (read s) }
-  [\<\>\+\-\.\#\,\:]      { \s -> TOp (head s) }
-  [\(\)\[\]]            { \s -> TDel (head s) }
-  \'[$alpha $digit $white \,\.\!]*\'  { \s -> TStr $ filter (/='\'') s}
+  $white+                            ;
+  $digit+                            { \s -> TInt (read s) }
+  $ops                               { \s -> TOp (head s) }
+  $delims                            { \s -> TDel (head s) }
+  \'[^\']*\'                         { \s -> TStr $ filter (/='\'') s}
+  [$notcode $alpha $digit $white]+   ;
 
 {
 -- Each action has type :: String -> Token
