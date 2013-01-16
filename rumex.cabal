@@ -16,6 +16,7 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 executable rumex
+  hs-source-dirs:      src
   main-is:             Main.hs
   other-modules:
     Interpreter
