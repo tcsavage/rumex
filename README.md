@@ -17,7 +17,7 @@ Commands
   * `]` - Jump to matching `[` if current value is non-zero
 
 *RUM*
-  * Any natural number - Write the value of the integer to the tape
+  * `nOp` - Repeat `Op` `n` times
   * `"string"` - Append string to the input
   * `(commands)` - Create a stored procedure containing `commands`, with an ID equal to the current value on the tape
   * `:` - Invoke stored procedure with the ID equal to the current value on the tape
