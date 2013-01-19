@@ -9,7 +9,7 @@ $alpha = [a-zA-Z]                   -- alphabetic characters
 $ops = [\<\>\+\-\.\#\,\:]           -- operations
 $strdelim = [\"]                    -- string delimiter
 $delims = [$strdelim \( \) \[ \]]   -- delimiters
-$notcode = [^$ops $delims]          -- everything that isn't code
+$code = [$ops $delims $digit]       -- everything that can be called code
 
 tokens :-
 
@@ -18,7 +18,7 @@ tokens :-
   $ops                               { \s -> TOp (head s) }
   $delims                            { \s -> TDel (head s) }
   $strdelim[^$strdelim]*$strdelim    { \s -> TStr $ filter (/='\'') s}
-  [$notcode $alpha $digit $white]+   ;
+  "{*" .* "*}"                       ;
 
 {
 -- Each action has type :: String -> Token
