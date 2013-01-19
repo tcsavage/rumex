@@ -1,8 +1,11 @@
 module Main where
 
-import Interpreter
+import Interpreter (interpret)
+import Tokens (tokenize)
+import Parser (parse)
 
 import System.Environment (getArgs)
+import Text.Show.Pretty (ppShow)
 
 main :: IO ()
 main = getArgs >>= run
@@ -15,4 +18,7 @@ run ["i", file, inp] = do
 run ["i", file] = do
     src <- readFile file
     putStrLn $ interpret "" src
+run ["ast", file] = do
+    src <- readFile file
+    putStrLn $ ppShow $ parse $ tokenize src
 run _ = putStrLn "Usage:\n  Interpret: rumex i FILE [INPUT]\n  Compile: rumex c FILE"
