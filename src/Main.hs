@@ -3,7 +3,6 @@ module Main where
 import Interpreter
 
 import System.Environment (getArgs)
-import System.IO (readFile)
 
 main :: IO ()
 main = getArgs >>= run
