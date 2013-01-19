@@ -4,11 +4,12 @@ module Tokens (tokenize, Token(..)) where
 
 %wrapper "basic"
 
-$digit = 0-9                 -- digits
-$alpha = [a-zA-Z]            -- alphabetic characters
-$ops = [\<\>\+\-\.\#\,\:]    -- operations
-$delims = [\'\(\)\[\]]       -- delimiters
-$notcode = [^$ops $delims]   -- everything that isn't code
+$digit = 0-9                        -- digits
+$alpha = [a-zA-Z]                   -- alphabetic characters
+$ops = [\<\>\+\-\.\#\,\:]           -- operations
+$strdelim = [\"]                    -- string delimiter
+$delims = [$strdelim \( \) \[ \]]   -- delimiters
+$notcode = [^$ops $delims]          -- everything that isn't code
 
 tokens :-
 
@@ -16,7 +17,7 @@ tokens :-
   $digit+                            { \s -> TInt (read s) }
   $ops                               { \s -> TOp (head s) }
   $delims                            { \s -> TDel (head s) }
-  \'[^\']*\'                         { \s -> TStr $ filter (/='\'') s}
+  $strdelim[^$strdelim]*$strdelim    { \s -> TStr $ filter (/='\'') s}
   [$notcode $alpha $digit $white]+   ;
 
 {
