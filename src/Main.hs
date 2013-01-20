@@ -12,7 +12,7 @@ main = getArgs >>= run
 
 run :: [String] -> IO ()
 run ("c":args) = c args
-run ("bc":args) = bc args
+run ("jit":args) = jit args
 run ("i":args) = i args
 run ("ast":args) = ast args
 run _ = putStrLn "Usage:\n  Interpret: rumex i FILE [INPUT]\n  Compile: rumex c FILE\n  JIT: rumex jit FILE\n  Build AST: rumex ast FILE"
