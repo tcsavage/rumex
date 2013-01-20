@@ -11,14 +11,26 @@ main :: IO ()
 main = getArgs >>= run
 
 run :: [String] -> IO ()
-run ["c", file] = error "Compiler not implemented"
-run ["i", file, inp] = do
+run ("c":args) = c args
+run ("bc":args) = bc args
+run ("i":args) = i args
+run ("ast":args) = ast args
+run _ = putStrLn "Usage:\n  Interpret: rumex i FILE [INPUT]\n  Compile: rumex c FILE\n  JIT: rumex jit FILE\n  Build AST: rumex ast FILE"
+
+c :: [String] -> IO ()
+c [file] = error "Compiler not implemented"
+
+jit :: [String] -> IO ()
+jit [file] = c [file, ""]
+jit [file, inp] = error "JIT not implemented"
+
+i :: [String] -> IO ()
+i [file] = c [file, ""]
+i [file, inp] = do
     src <- readFile file
     putStrLn $ interpret inp src
-run ["i", file] = do
-    src <- readFile file
-    putStrLn $ interpret "" src
-run ["ast", file] = do
+
+ast :: [String] -> IO ()
+ast [file] = do
     src <- readFile file
     putStrLn $ ppShow $ parse $ tokenize src
-run _ = putStrLn "Usage:\n  Interpret: rumex i FILE [INPUT]\n  Compile: rumex c FILE"
