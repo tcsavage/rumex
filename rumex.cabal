@@ -19,9 +19,10 @@ executable rumex
   hs-source-dirs:      src
   main-is:             Main.hs
   other-modules:
+    Compiler
     Interpreter
     Parser
     Tokens
-  build-depends:       base ==4.5.*, transformers ==0.3.*, vector ==0.10.*, array ==0.4.*, pretty-show >= 1.4.1
+  build-depends:       base ==4.5.*, transformers ==0.3.*, vector ==0.10.*, array ==0.4.*, pretty-show >= 1.4.1, llvm, type-level, process
   build-tools:         alex, happy
   ghc-options:         -Wall
