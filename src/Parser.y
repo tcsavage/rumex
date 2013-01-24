@@ -66,5 +66,5 @@ data Op = Inc
         | WriteChar
         | WriteInt
         | Invoke
-        deriving (Show)
+        deriving (Show, Eq)
 }
