@@ -1,5 +1,6 @@
 module Compiler (compile) where
 
+import Prelude hiding (Left, Right)
 import Tokens (tokenize)
 import Parser
 
@@ -44,6 +45,32 @@ moveRight refs = do
 		ret ()
 	return f
 
+moveLeft :: GlobalRefs -> TFunction (Word32 -> IO ())
+moveLeft refs = do
+	let h = tapeHead refs
+	f <- newNamedFunction ExternalLinkage "moveLeft" :: TFunction (Word32 -> IO ())
+	defineFunction f $ \n -> do
+		old <- load h
+		new <- sub old n
+		store new h
+		ret ()
+	return f
+
+incrementCurrent :: GlobalRefs -> TFunction (Word32 -> IO ())
+incrementCurrent refs = do
+	let h = tapeHead refs
+	let tape = tapeVec refs
+	f <- newNamedFunction ExternalLinkage "inc" :: TFunction (Word32 -> IO ())
+	defineFunction f $ \n -> do
+		pos <- load h
+		tape' <- load tape
+		old <- extractelement tape' pos
+		new <- add old n
+		tape'' <- insertelement tape' new pos
+		store tape'' tape
+		ret ()
+	return f
+
 pint :: TFunction (Word8 -> IO Word32)
 pint = withStringNul "%d\n" $ \t -> do
 	f <- newNamedFunction ExternalLinkage "pint" :: TFunction (Word8 -> IO Word32)
@@ -63,6 +90,8 @@ llvmModule = do
 	putint <- pint
 	getval <- getCurrent grefs
 	r <- moveRight grefs
+	l <- moveLeft grefs
+	inc <- incrementCurrent grefs
 	let h = tapeHead grefs
 	let tape = tapeVec grefs
 	main <- newNamedFunction ExternalLinkage "main" :: TFunction (IO Word32)
@@ -74,6 +103,7 @@ llvmModule = do
 		ctape'' <- load tape
 		celem <- extractelement ctape'' (valueOf 2)
 		_ <- call putint celem
+		_ <- call inc (valueOf 2)
 		_ <- call r (valueOf 4)
 		currval <- call getval
 		_ <- call putint currval
