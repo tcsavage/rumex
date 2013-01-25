@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, FlexibleContexts #-}
 
 module Compiler (compile) where
 
@@ -10,10 +10,12 @@ import Control.Monad
 import Data.Maybe
 import Data.Word
 import LLVM.Core
-import LLVM.Util.Loop (mapVector)
+import LLVM.Util.Loop
 import Data.TypeLevel.Num (D8, toNum)
 import System.Process (system)
 import Text.Printf
+
+notimplemented = error "Not yet implemented"
 
 --getTapeSize :: Vector s Word8 -> Word32
 --getTapeSize = toNum (undefined :: s)
@@ -26,6 +28,32 @@ data GlobalRefs = GlobalRefs {tapeVec :: Global (Vector D8 Word8), tapeHead :: G
 --tapeHead :: TGlobal Word32
 --tapeHead = createNamedGlobal False ExternalLinkage "tapehead" $ constOf (0::Word32)
 
+-- | Given a section of function, generate code which accepts an argument n and loops the code n times.
+repeatedOp :: (Ret () r, CmpRet c Bool, CmpOp (Value Word32) b c Bool) => CodeGenFunction r a -> b -> CodeGenFunction r Terminate
+repeatedOp fun n = do
+	top <- getCurrentBasicBlock
+	loop <- newBasicBlock
+	body <- newBasicBlock
+	exit <- newBasicBlock
+
+	br loop
+
+	defineBasicBlock loop
+	i <- phi [(valueOf (0::Word32), top)]
+	t <- cmp CmpNE i n
+	condBr t body exit
+
+	defineBasicBlock body
+	fun
+	i' <- add i (valueOf (1::Word32))
+	body' <- getCurrentBasicBlock
+	addPhiInputs i [(i', body')]
+	br loop
+
+	defineBasicBlock exit
+	ret ()
+
+-- | Get the current value from the globals.
 getCurrent :: GlobalRefs -> TFunction (IO Word8)
 getCurrent refs = do
 	let h = tapeHead refs
@@ -38,6 +66,7 @@ getCurrent refs = do
 		ret curr
 	return f
 
+-- | Move tape head right.
 moveRight :: GlobalRefs -> TFunction (Word32 -> IO ())
 moveRight refs = do
 	let h = tapeHead refs
@@ -49,6 +78,7 @@ moveRight refs = do
 		ret ()
 	return f
 
+-- | Move tape head left.
 moveLeft :: GlobalRefs -> TFunction (Word32 -> IO ())
 moveLeft refs = do
 	let h = tapeHead refs
@@ -60,6 +90,7 @@ moveLeft refs = do
 		ret ()
 	return f
 
+-- | Increment current value under tape head.
 incrementCurrent :: GlobalRefs -> TFunction (Word32 -> IO ())
 incrementCurrent refs = do
 	let h = tapeHead refs
@@ -77,6 +108,7 @@ incrementCurrent refs = do
 		ret ()
 	return f
 
+-- | Decrement current value under tape head.
 decrementCurrent :: GlobalRefs -> TFunction (Word32 -> IO ())
 decrementCurrent refs = do
 	let h = tapeHead refs
@@ -94,35 +126,36 @@ decrementCurrent refs = do
 		ret ()
 	return f
 
+-- | Print current value as an ASCII character.
 printCurrentAscii :: GlobalRefs -> TFunction (Word32 -> IO ())
 printCurrentAscii refs = do
 	let h = tapeHead refs
 	let tape = tapeVec refs
 	putchar <- newNamedFunction ExternalLinkage "putchar" :: TFunction (Word32 -> IO Word32)
 	f <- newNamedFunction ExternalLinkage "pascii" :: TFunction (Word32 -> IO ())
-	defineFunction f $ \n -> do
+	defineFunction f $ repeatedOp $ do
 		pos <- load h
 		tape' <- load tape
 		current <- extractelement tape' pos
 		(current32 :: Value Word32) <- zext current -- Word8 -> Word32
 		void $ call putchar current32
-		ret ()
 	return f
 
+-- | Print current value as an integer.
 printCurrentInt :: GlobalRefs -> TFunction (Word32 -> IO ())
 printCurrentInt refs = do
 	let h = tapeHead refs
 	let tape = tapeVec refs
 	let pint' = pint refs
 	f <- newNamedFunction ExternalLinkage "pcint" :: TFunction (Word32 -> IO ())
-	defineFunction f $ \n -> do
+	defineFunction f $ repeatedOp $ do
 		pos <- load h
 		tape' <- load tape
 		current <- extractelement tape' pos
 		void $ call pint' current
-		ret ()
 	return f
 
+-- | Print a byte as an integer.
 putint :: TFunction (Word8 -> IO Word32)
 putint = withStringNul "%d\n" $ \t -> do
 	f <- newNamedFunction ExternalLinkage "pint" :: TFunction (Word8 -> IO Word32)
@@ -133,6 +166,7 @@ putint = withStringNul "%d\n" $ \t -> do
 		ret r
 	return f
 
+-- | Print out entire tape.
 printTape :: GlobalRefs -> TFunction (IO ())
 printTape refs = do
 	let tape = tapeVec refs
@@ -144,13 +178,15 @@ printTape refs = do
 		ret ()
 	return f
 
+-- | Generate code from AST.
 build :: [(Op, Function (Word32 -> IO ()))] -> Prog -> CodeGenFunction r ()
 build funTable (Join a b) = (build funTable a) >> (build funTable b)
 build funTable (CommandSequence (Command n op)) = void $ call (fromJust $ lookup op funTable) (valueOf $ toEnum n)
-build _ (Loop prog) = undefined
-build _ (FunDef prog) = undefined
-build _ (Str str) = undefined
+build _ (Loop prog) = notimplemented
+build _ (FunDef prog) = notimplemented
+build _ (Str str) = notimplemented
 
+-- | The code generator module.
 llvmModule :: Prog -> TFunction (IO Word32)
 llvmModule ast = do
 	-- Generate globals and fun refs
@@ -177,6 +213,7 @@ llvmModule ast = do
 		ret (0::Word32)
 	return main
 
+-- | Given source code and a destination, compile the source and save the executable to the destination.
 compile :: String -> FilePath -> IO ()
 compile progcode out = do
 	let ast = parse $ tokenize progcode
