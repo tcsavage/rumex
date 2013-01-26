@@ -187,7 +187,7 @@ build _ (FunDef prog) = notimplemented
 build _ (Str str) = notimplemented
 
 -- | The code generator module.
-llvmModule :: Prog -> TFunction (IO Word32)
+llvmModule :: Prog -> TFunction (Word32 -> Ptr (Ptr Word8) -> IO Word32)
 llvmModule ast = do
 	-- Generate globals and fun refs
 	vec <- createNamedGlobal False ExternalLinkage "tape" $ constVector (map constOf (take 8 (repeat (0::Word8))))
@@ -203,11 +203,16 @@ llvmModule ast = do
 	dec <- decrementCurrent grefs
 	pascii <- printCurrentAscii grefs
 	pcint <- printCurrentInt grefs
+	puts <- newNamedFunction ExternalLinkage "puts" :: TFunction (Ptr Word8 -> IO Word32)
 	-- Function table
 	let funTable = [(Inc, inc), (Dec, dec), (Left, l), (Right, r), (WriteChar, pascii), (WriteInt, pcint)]
 	-- Define main
-	main <- newNamedFunction ExternalLinkage "main" :: TFunction (IO Word32)
-	defineFunction main $ do
+	main <- newNamedFunction ExternalLinkage "main" :: TFunction (Word32 -> Ptr (Ptr Word8) -> IO Word32)
+	defineFunction main $ \argc argv -> do
+		arg0 <- load argv -- Program name
+		arg1 <- getElementPtr argv (1::Word32, ()) >>= load -- Input string
+		arg10 <- getElementPtr arg1 (0::Word32, ()) >>= load
+		void $ call puts arg1
 		build funTable ast
 		--void $ call dbgprint
 		ret (0::Word32)
