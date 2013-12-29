@@ -5,7 +5,7 @@ bRainfUck iMproved EXtended - An extended version of the RUM Brainfuck variant i
 
 This project serves as both an educational tool - for leraning about lexers, parsers, interpreters and compilers - and as a fun toy language to play with.
 
-RUMEX is a modified implementation of the RUM Brainfuck variant. Where as RUM is a superset of Brainfuck, RUMEX is not. This is because RUMEX uses explicit comment delimiters, as opposed to Brainfuck's "anything that isn't code is ignored" approach. This is primeraly to permit comments to contain characters which would otherwise be considered code, but it has the added advantage of improving clarity as well.
+RUMEX is a modified implementation of the RUM Brainfuck variant. Where as RUM is a superset of Brainfuck, RUMEX is not. This is because RUMEX uses explicit comment delimiters, as opposed to Brainfuck's "anything that isn't code is ignored" approach. This is primarily to permit comments to contain characters which would otherwise be considered code, but it has the added advantage of improving clarity as well.
 
 Commands
 --------
